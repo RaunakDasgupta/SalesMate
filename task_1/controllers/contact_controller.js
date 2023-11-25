@@ -1,23 +1,12 @@
-// routes/contactRoutes.js
-
-const express = require('express');
-const router = express.Router();
 const axios = require('axios');
-const mysql = require('mysql');
-
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '12345',
-  database: 'Interactly',
-});
+const { get } = require('http');
+const db = require('../database/db.js');
 
 const FRESHSALES_API_DOMAIN =
   'https://interactly-647782674673369507.myfreshworks.com/crm/sales/api/contacts/';
 const FRESHSALES_API_KEY = 'WmPgY0L8Sk1I6ezsBetd2A';
 
-// Endpoint to create a contact
-router.post('/createContact', async (req, res) => {
+async function createContact(req, res) {
   const { first_name, last_name, email, mobile_number, data_store } = req.body;
 
   try {
@@ -53,7 +42,7 @@ router.post('/createContact', async (req, res) => {
 
         const mysqlContactId = result.insertId;
 
-        res.json({ success: true, contact_id: mysqlContactId });
+        res.json({ success: true, contact_id: mysqlContactId, result });
       });
     } else {
       res.status(400).json({ error: 'Invalid data_store parameter' });
@@ -62,17 +51,15 @@ router.post('/createContact', async (req, res) => {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+}
 
-// Implement the other endpoints similarly
-// Endpoint to get a contact
-router.get('/getContact', (req, res) => {
+async function getContact(req, res) {
   const { contact_id, data_store } = req.query;
 
   if (data_store === 'CRM') {
     // Implement logic to get contact from FreshSales CRM using contact_id
     // Example: Make an HTTP request to FreshSales API
-    axios
+    await axios
       .get(`${FRESHSALES_API_DOMAIN}${contact_id}`, {
         headers: {
           Authorization: `Token token=${FRESHSALES_API_KEY}`,
@@ -109,10 +96,9 @@ router.get('/getContact', (req, res) => {
   } else {
     res.status(400).json({ error: 'Invalid data_store parameter' });
   }
-});
+}
 
-// Endpoint to update a contact
-router.post('/updateContact', (req, res) => {
+async function updateContact(req, res) {
   const {
     contact_id,
     new_first_name,
@@ -121,11 +107,10 @@ router.post('/updateContact', (req, res) => {
     new_mobile_number,
     data_store,
   } = req.body;
-  console.log(`${FRESHSALES_API_DOMAIN}${contact_id}`);
 
   if (data_store === 'CRM') {
     // Implement logic to update contact in FreshSales CRM using contact_id
-    axios
+    await axios
       .patch(
         `${FRESHSALES_API_DOMAIN}${contact_id}`,
         {
@@ -159,11 +144,11 @@ router.post('/updateContact', (req, res) => {
   } else if (data_store === 'DATABASE') {
     // Implement logic to update contact in MySQL database using contact_id
     const updateQuery =
-      'UPDATE contacts SET email = ?, new_first_name= ?, new_last_name= ?, mobile_number = ? WHERE id = ?';
+      'UPDATE `contacts` SET `email` = ?, `first_name`= ?, `last_name`= ?, `mobile_number` = ? WHERE `id` = ?';
     const values = [
+      new_email,
       new_first_name,
       new_last_name,
-      new_email,
       new_mobile_number,
       contact_id,
     ];
@@ -184,17 +169,16 @@ router.post('/updateContact', (req, res) => {
   } else {
     res.status(400).json({ error: 'Invalid data_store parameter' });
   }
-});
+}
 
-// Endpoint to delete a contact
-router.post('/deleteContact', (req, res) => {
+async function deleteContact(req, res) {
   const { contact_id, data_store } = req.body;
 
   if (data_store === 'CRM') {
     // Implement logic to delete contact in FreshSales CRM using contact_id
     // Example: Make an HTTP request to FreshSales API
-    axios
-      .delete(`${FRESHSALES_API_DOMAIN}/${contact_id}`, {
+    await axios
+      .delete(`${FRESHSALES_API_DOMAIN}${contact_id}`, {
         headers: {
           Authorization: `Token token=${FRESHSALES_API_KEY}`,
         },
@@ -228,6 +212,11 @@ router.post('/deleteContact', (req, res) => {
   } else {
     res.status(400).json({ error: 'Invalid data_store parameter' });
   }
-});
+}
 
-module.exports = router;
+module.exports = {
+  createContact,
+  getContact,
+  updateContact,
+  deleteContact,
+};

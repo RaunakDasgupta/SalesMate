@@ -1,0 +1,25 @@
+version: '3.8'
+
+services: 
+  mysqldb:
+    container_name: interactly-mysqldb-1
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345
+      MYSQL_DATABASE: Interactly
+    ports:
+      - 3306:3306
+    command: ["--init-file", "/docker-entrypoint-initdb.d/init.sql"]
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: node-mysql-app
+    ports:
+      - 3000:3000
+    depends_on:
+      - mysqldb
